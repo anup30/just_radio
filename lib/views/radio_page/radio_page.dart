@@ -1,13 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart'; // Import just_audio
-import 'package:just_radio/constants/colors.dart';
-import 'package:just_radio/models/radio_model.dart'; // Ensure this path is correct based on your project
-import 'package:just_radio/views/radio_page/widgets/custom_radio_list_tile.dart'; // Ensure this path is correct
-import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:just_radio/constants/colors.dart'; // Ensure this matches your project structure
+import 'package:just_radio/models/radio_model.dart'; // Ensure this matches your project structure
+import 'package:just_radio/views/radio_page/widgets/custom_radio_list_tile.dart'; // Ensure this matches your project structure
+import 'package:responsive_sizer/responsive_sizer.dart';
 
 // Import your list
-import '../../main.dart'; // Assuming radioList2 is in main.dart, otherwise import where it is defined.
+import '../../main.dart';
 
 class RadioPage extends StatefulWidget {
   const RadioPage({super.key});
@@ -20,12 +20,11 @@ class _RadioPageState extends State<RadioPage> {
   List<RadioModel>? radioList;
   RadioModel? currentPlayingRadio;
 
-  // 1. Initialize just_audio player
   final AudioPlayer _player = AudioPlayer();
   bool _isPlaying = false;
   bool _isLoading = false;
+  double _volume = 1.0;
 
-  double _volume = 1.0; // Default to 100% ///
   bool get isRadioSelected => currentPlayingRadio != null;
 
   @override
@@ -39,13 +38,10 @@ class _RadioPageState extends State<RadioPage> {
 
       setState(() {
         _isPlaying = isPlaying;
-
         if (kIsWeb) {
-          // WEB FIX: Live streams on web often stay in 'buffering' state forever.
-          // So on web, we ONLY show the spinner during the initial 'loading' phase.
+          // Web fix for buffering state
           _isLoading = processingState == ProcessingState.loading;
         } else {
-          // MOBILE: We can trust the buffering state on Android/iOS.
           _isLoading = processingState == ProcessingState.loading ||
               processingState == ProcessingState.buffering;
         }
@@ -55,7 +51,6 @@ class _RadioPageState extends State<RadioPage> {
 
   @override
   void dispose() {
-    // 3. Always dispose the player when the widget is closed
     _player.dispose();
     super.dispose();
   }
@@ -65,26 +60,25 @@ class _RadioPageState extends State<RadioPage> {
       setState(() {
         currentPlayingRadio = radio;
       });
-
-      // 4. Load the URL
       await _player.setUrl(radio.audioUrl ?? "");
-
-      // 5. Play
       _player.play();
     } catch (e) {
-      print("Error loading audio source: $e");
+      print("Error loading audio: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Cannot play this station: ${e.toString()}")),
       );
     }
   }
 
-  Widget _buildVolumeSlider(TextTheme textTheme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10),
+  // FIXED: Removed arguments.
+  // UPDATED: Width set to 40.w
+  Widget _buildVolumeSlider() {
+    return SizedBox(
+      width: 30.w, // 30% of screen width
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.volume_mute_rounded, color: Colors.grey),
+          const Icon(Icons.volume_mute_rounded, color: Colors.grey, size: 20),
           Expanded(
             child: Slider(
               activeColor: CustomColors.primary,
@@ -100,7 +94,7 @@ class _RadioPageState extends State<RadioPage> {
               },
             ),
           ),
-          const Icon(Icons.volume_up_rounded, color: Colors.grey),
+          const Icon(Icons.volume_up_rounded, color: Colors.grey, size: 20),
         ],
       ),
     );
@@ -112,7 +106,40 @@ class _RadioPageState extends State<RadioPage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text("Radio App"), // Replaced Image for simplicity in this snippet
+        title: const Text("Radio App"),
+        // ADDED: 3-Dot Menu
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: const Text("About Developer"),
+                    content: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("App built by Anup Barua"),
+                        SizedBox(height: 8),
+                        Text("Email: anupbarua30@gmail.com"),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text("Close"),
+                      )
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: SizedBox(
         width: 100.w,
@@ -170,7 +197,6 @@ class _RadioPageState extends State<RadioPage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // IconButton(icon: Icon(Icons.skip_previous), onPressed: () {}),
                     GestureDetector(
                       onTap: () {
                         if (_player.playing) {
@@ -206,14 +232,14 @@ class _RadioPageState extends State<RadioPage> {
                         ),
                       ),
                     ),
-                    // IconButton(icon: Icon(Icons.skip_next), onPressed: () {}),
                   ],
                 ),
-                // --- ADD THE SLIDER HERE ---
+
                 const SizedBox(height: 16),
-                _buildVolumeSlider(textTheme),
-                // ---------------------------
+                // FIXED: Calling the function without arguments
+                _buildVolumeSlider(),
               ],
+
               const SizedBox(height: 26),
               Align(
                   alignment: Alignment.centerLeft,
@@ -230,7 +256,6 @@ class _RadioPageState extends State<RadioPage> {
                     : ListView.separated(
                     itemBuilder: (context, index) => CustomRadioListTile(
                       radio: radioList![index],
-                      // Logic to show playing icon on the list item if it matches current
                       isPlaying: currentPlayingRadio == radioList![index] && _isPlaying,
                       onTap: () {
                         _playRadio(radioList![index]);
