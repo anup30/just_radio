@@ -3,3 +3,14 @@ git add .
 git commit -m "Initial commit"
 
 create github repository
+push codes
+-----
+
+/* deploy web version:
+* dart pub global activate peanut
+* peanut --extra-args "--base-href=/just_radio/"
+* git push origin --set-upstream gh-pages
+* go to github settings > pages :
+* source: deploy from a branch
+* branch: gh-pages, /(root) -> save
+* */
