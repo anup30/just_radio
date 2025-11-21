@@ -1,0 +1,33 @@
+name: just_radio
+description: "online radio app in flutter"
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.6
+  responsive_sizer: ^3.3.1
+  http: 1.2.2
+  #radio_player: 1.6.0 # removed
+  just_audio: ^0.9.36     # <-- new try
+  flutter_launcher_icons: ^0.13.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.0
+
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - assets/
