@@ -4,6 +4,7 @@ import 'package:just_radio/constants/colors.dart';
 import 'package:just_radio/models/radio_model.dart'; // Ensure this path is correct based on your project
 import 'package:just_radio/views/radio_page/widgets/custom_radio_list_tile.dart'; // Ensure this path is correct
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Import your list
 import '../../main.dart'; // Assuming radioList2 is in main.dart, otherwise import where it is defined.
@@ -24,22 +25,30 @@ class _RadioPageState extends State<RadioPage> {
   bool _isPlaying = false;
   bool _isLoading = false;
 
+  double _volume = 1.0; // Default to 100% ///
   bool get isRadioSelected => currentPlayingRadio != null;
 
   @override
   void initState() {
     super.initState();
-    radioList = radioList2; // Assuming this is your list variable
+    radioList = radioList2;
 
-    // 2. Listen to player state changes (playing, paused, buffering, loading)
     _player.playerStateStream.listen((playerState) {
       final isPlaying = playerState.playing;
       final processingState = playerState.processingState;
 
       setState(() {
         _isPlaying = isPlaying;
-        _isLoading = processingState == ProcessingState.loading ||
-            processingState == ProcessingState.buffering;
+
+        if (kIsWeb) {
+          // WEB FIX: Live streams on web often stay in 'buffering' state forever.
+          // So on web, we ONLY show the spinner during the initial 'loading' phase.
+          _isLoading = processingState == ProcessingState.loading;
+        } else {
+          // MOBILE: We can trust the buffering state on Android/iOS.
+          _isLoading = processingState == ProcessingState.loading ||
+              processingState == ProcessingState.buffering;
+        }
       });
     });
   }
@@ -68,6 +77,33 @@ class _RadioPageState extends State<RadioPage> {
         SnackBar(content: Text("Cannot play this station: ${e.toString()}")),
       );
     }
+  }
+
+  Widget _buildVolumeSlider(TextTheme textTheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10),
+      child: Row(
+        children: [
+          const Icon(Icons.volume_mute_rounded, color: Colors.grey),
+          Expanded(
+            child: Slider(
+              activeColor: CustomColors.primary,
+              inactiveColor: CustomColors.primary.withOpacity(0.2),
+              value: _volume,
+              min: 0.0,
+              max: 1.0,
+              onChanged: (value) {
+                setState(() {
+                  _volume = value;
+                });
+                _player.setVolume(value);
+              },
+            ),
+          ),
+          const Icon(Icons.volume_up_rounded, color: Colors.grey),
+        ],
+      ),
+    );
   }
 
   @override
@@ -173,6 +209,10 @@ class _RadioPageState extends State<RadioPage> {
                     // IconButton(icon: Icon(Icons.skip_next), onPressed: () {}),
                   ],
                 ),
+                // --- ADD THE SLIDER HERE ---
+                const SizedBox(height: 16),
+                _buildVolumeSlider(textTheme),
+                // ---------------------------
               ],
               const SizedBox(height: 26),
               Align(
